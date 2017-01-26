@@ -66,7 +66,6 @@ public class Compositing: NSObject, AVVideoCompositing, ImageConsumer {
         kCVPixelBufferOpenGLCompatibilityKey as String : NSNumber(value: true)
     ]
     
-    
     // READ FORMAT
     public var sourcePixelBufferAttributes: [String :Any]? = [
         kCVPixelBufferPixelFormatTypeKey as String : NSNumber(value: Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)),
