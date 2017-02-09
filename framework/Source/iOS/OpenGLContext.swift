@@ -10,7 +10,7 @@ public class OpenGLContext: SerialDispatch {
     }()
     var shaderCache:[String:ShaderProgram] = [:]
     
-    let context:EAGLContext
+    public let context:EAGLContext
     
     lazy var passthroughShader:ShaderProgram = {
         return crashOnShaderCompileFailure("OpenGLContext"){return try self.programForVertexShader(OneInputVertexShader, fragmentShader:PassthroughFragmentShader)}
