@@ -20,6 +20,10 @@ public class TextureOutput: ImageConsumer {
     
     private var lastFramebuffer: Framebuffer?
     
+    public init() {
+        
+    }
+    
     public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
         newTextureAvailableCallback?(framebuffer.texture)
         // TODO: Maybe extend the lifetime of the texture past this if needed
