@@ -16,7 +16,7 @@ public class OpenGLContext: SerialDispatch {
         return crashOnShaderCompileFailure("OpenGLContext"){return try self.programForVertexShader(OneInputVertexShader, fragmentShader:PassthroughFragmentShader)}
     }()
 
-    lazy var coreVideoTextureCache:CVOpenGLESTextureCache = {
+    public lazy var coreVideoTextureCache:CVOpenGLESTextureCache = {
         var newTextureCache:CVOpenGLESTextureCache? = nil
         let err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nil, self.context, nil, &newTextureCache)
         return newTextureCache!
