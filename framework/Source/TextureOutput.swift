@@ -27,12 +27,13 @@ public class TextureOutput: ImageConsumer {
     public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
         newTextureAvailableCallback?(framebuffer.texture)
         // TODO: Maybe extend the lifetime of the texture past this if needed
-//        framebuffer.unlock()
-        
+        framebuffer.unlock()
+       /*
         if let lastFramebuffer = self.lastFramebuffer {
             lastFramebuffer.unlock()
-            print("unlocked last FBO")
+            //print("unlocked last FBO")
         }
         lastFramebuffer = framebuffer
+ */
     }
 }
