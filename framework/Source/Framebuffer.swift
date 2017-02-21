@@ -46,7 +46,7 @@ public class Framebuffer {
     public var timingStyle:FramebufferTimingStyle = .stillImage
     public var orientation:ImageOrientation
 
-    let texture:GLuint
+    public let texture:GLuint
     let framebuffer:GLuint?
     let stencilBuffer:GLuint?
     let size:GLSize
@@ -167,7 +167,7 @@ public class Framebuffer {
         framebufferRetainCount = 0
     }
     
-    func unlock() {
+    public func unlock() {
         framebufferRetainCount -= 1
         if (framebufferRetainCount < 1) {
             if ((framebufferRetainCount < 0) && (cache != nil)) {
