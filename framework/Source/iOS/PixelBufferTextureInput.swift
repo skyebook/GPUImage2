@@ -42,10 +42,10 @@ open class PixelBufferTextureInput: ImageSource {
         
     }
     
-    public func process(movieFrame:CVPixelBuffer, withSampleTime:CMTime) {
-        let bufferHeight = CVPixelBufferGetHeight(movieFrame)
-        let bufferWidth = CVPixelBufferGetWidth(movieFrame)
-        CVPixelBufferLockBaseAddress(movieFrame, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
+    public func process(pixelBuffer:CVPixelBuffer, withSampleTime:CMTime) {
+        let bufferHeight = CVPixelBufferGetHeight(pixelBuffer)
+        let bufferWidth = CVPixelBufferGetWidth(pixelBuffer)
+        CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
         
         
         
@@ -65,7 +65,7 @@ open class PixelBufferTextureInput: ImageSource {
         let chrominanceFramebuffer:Framebuffer
         if sharedImageProcessingContext.supportsTextureCaches() {
             var luminanceTextureRef:CVOpenGLESTexture? = nil
-            let _ = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, sharedImageProcessingContext.coreVideoTextureCache, movieFrame, nil, GLenum(GL_TEXTURE_2D), GL_LUMINANCE, GLsizei(bufferWidth), GLsizei(bufferHeight), GLenum(GL_LUMINANCE), GLenum(GL_UNSIGNED_BYTE), 0, &luminanceTextureRef)
+            let _ = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, sharedImageProcessingContext.coreVideoTextureCache, pixelBuffer, nil, GLenum(GL_TEXTURE_2D), GL_LUMINANCE, GLsizei(bufferWidth), GLsizei(bufferHeight), GLenum(GL_LUMINANCE), GLenum(GL_UNSIGNED_BYTE), 0, &luminanceTextureRef)
             let luminanceTexture = CVOpenGLESTextureGetName(luminanceTextureRef!)
             glActiveTexture(GLenum(GL_TEXTURE4))
             glBindTexture(GLenum(GL_TEXTURE_2D), luminanceTexture)
@@ -74,7 +74,7 @@ open class PixelBufferTextureInput: ImageSource {
             luminanceFramebuffer = try! Framebuffer(context:sharedImageProcessingContext, orientation:.portrait, size:GLSize(width:GLint(bufferWidth), height:GLint(bufferHeight)), textureOnly:true, overriddenTexture:luminanceTexture)
             
             var chrominanceTextureRef:CVOpenGLESTexture? = nil
-            let _ = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, sharedImageProcessingContext.coreVideoTextureCache, movieFrame, nil, GLenum(GL_TEXTURE_2D), GL_LUMINANCE_ALPHA, GLsizei(bufferWidth / 2), GLsizei(bufferHeight / 2), GLenum(GL_LUMINANCE_ALPHA), GLenum(GL_UNSIGNED_BYTE), 1, &chrominanceTextureRef)
+            let _ = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, sharedImageProcessingContext.coreVideoTextureCache, pixelBuffer, nil, GLenum(GL_TEXTURE_2D), GL_LUMINANCE_ALPHA, GLsizei(bufferWidth / 2), GLsizei(bufferHeight / 2), GLenum(GL_LUMINANCE_ALPHA), GLenum(GL_UNSIGNED_BYTE), 1, &chrominanceTextureRef)
             let chrominanceTexture = CVOpenGLESTextureGetName(chrominanceTextureRef!)
             glActiveTexture(GLenum(GL_TEXTURE5))
             glBindTexture(GLenum(GL_TEXTURE_2D), chrominanceTexture)
@@ -87,13 +87,13 @@ open class PixelBufferTextureInput: ImageSource {
             luminanceFramebuffer.lock()
             
             glBindTexture(GLenum(GL_TEXTURE_2D), luminanceFramebuffer.texture)
-            glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_LUMINANCE, GLsizei(bufferWidth), GLsizei(bufferHeight), 0, GLenum(GL_LUMINANCE), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddressOfPlane(movieFrame, 0))
+            glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_LUMINANCE, GLsizei(bufferWidth), GLsizei(bufferHeight), 0, GLenum(GL_LUMINANCE), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0))
             
             glActiveTexture(GLenum(GL_TEXTURE5))
             chrominanceFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation:.portrait, size:GLSize(width:GLint(bufferWidth / 2), height:GLint(bufferHeight / 2)), textureOnly:true)
             chrominanceFramebuffer.lock()
             glBindTexture(GLenum(GL_TEXTURE_2D), chrominanceFramebuffer.texture)
-            glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_LUMINANCE_ALPHA, GLsizei(bufferWidth / 2), GLsizei(bufferHeight / 2), 0, GLenum(GL_LUMINANCE_ALPHA), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddressOfPlane(movieFrame, 1))
+            glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_LUMINANCE_ALPHA, GLsizei(bufferWidth / 2), GLsizei(bufferHeight / 2), 0, GLenum(GL_LUMINANCE_ALPHA), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1))
         }
         
         
@@ -138,7 +138,7 @@ open class PixelBufferTextureInput: ImageSource {
 //        movieFramebuffer.texture
         
         convertYUVToRGB(shader:self.yuvConversionShader, luminanceFramebuffer:luminanceFramebuffer, chrominanceFramebuffer:chrominanceFramebuffer, resultFramebuffer:movieFramebuffer, colorConversionMatrix:conversionMatrix)
-        CVPixelBufferUnlockBaseAddress(movieFrame, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
         
         movieFramebuffer.timingStyle = .videoFrame(timestamp:Timestamp(withSampleTime))
         self.updateTargetsWithFramebuffer(movieFramebuffer)
