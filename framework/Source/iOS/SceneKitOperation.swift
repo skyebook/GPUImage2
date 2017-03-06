@@ -9,113 +9,92 @@
 import SceneKit
 import GLKit
 
-public class SceneKitOperation: ImageProcessingOperation {
+open class SceneKitOperation: ImageProcessingOperation {
+    public let maximumInputs:UInt = 1
+    public var backgroundColor = Color.green
+    
+    // MARK: -
+    // MARK: Internal
+    
     public let targets = TargetContainer()
     public let sources = SourceContainer()
-    public var maximumInputs: UInt = 1
+    var inputFramebuffers = [UInt:Framebuffer]()
+    var renderFramebuffer:Framebuffer!
+    var outputFramebuffer:Framebuffer { get { return renderFramebuffer } }
     
+    
+    
+    // SCENEKIT STUFF
     public let renderer = SCNRenderer(context: sharedImageProcessingContext.context, options: nil)
     public var textureTargetMaterial: SCNMaterial?
-    
     private var outputSize: CGSize
     
-    private var sceneKitFramebuffer: Framebuffer?
+    // MARK: -
+    // MARK: Initialization and teardown
     
-    private var displayLink: CADisplayLink?
-    private var renderSinceLastDisplayLink: Bool = false
-    
-    public init(outputSize: CGSize, renderStaleBuffers: Bool = false) {
+    public init(outputSize: CGSize) {
         self.outputSize = outputSize
-        
-//        if renderStaleBuffers {
-//            displayLink = CADisplayLink(target: self, selector: #selector(displayLinkFired(_:)))
-//            
-//            //displayLink?.paused = true
-//            displayLink?.add(to: RunLoop.main, forMode: RunLoopMode.commonModes)
-//        }
     }
     
-//    @objc private func displayLinkFired(_ displayLink: CADisplayLink) {
-//        let nextDisplayTime = displayLink.timestamp + displayLink.duration
-//        
-//        //log.debug("ITEM TIME: \(itemTime)")
-//        
-//        if videoOutput.hasNewPixelBuffer(forItemTime: itemTime) {
-//            if let pixelBuffer = videoOutput.copyPixelBuffer(forItemTime: itemTime, itemTimeForDisplay: nil) {
-//                delegates.invoke {$0.pixelBufferAvailable(pixelBuffer: pixelBuffer, repeatedBuffer: false, sampleTime: itemTime)}
-//                firstFrameBlitted = true
-//                
-//                lastSampleBufferTime = itemTime
-//            }
-//        }
-//        else if let lastSampleBufferTime = lastSampleBufferTime {
-//            
-//            let needsRefresh = delegates.some {$0.shouldContinueVendingLastFrame()}
-//            guard needsRefresh else {
-//                return
-//            }
-//            
-//            // copy the pixel buffer down here so that we don't do it needlessly if no clients want a refresh
-//            // With a pixel buffer from the previous sample time, send it to clients interested in the previous frame
-//            if let pixelBuffer = videoOutput.copyPixelBuffer(forItemTime: lastSampleBufferTime, itemTimeForDisplay: nil) {
-//                delegates.filterAndInvoke({ (delegate) -> Bool in
-//                    return delegate.shouldContinueVendingLastFrame()
-//                }, invocation: { (delegate) in
-//                    delegate.pixelBufferAvailable(pixelBuffer: pixelBuffer, repeatedBuffer: true, sampleTime: lastSampleBufferTime)
-//                })
-//                //delegatesNeedingRefresh.forEach{$0.pixelBufferAvailable(pixelBuffer: pixelBuffer, repeatedBuffer: true, sampleTime: lastSampleBufferTime)}
-//            }
-//        }
-//        
-//    }
+    deinit {
+        debugPrint("Deallocating operation: \(self)")
+    }
+    
+    // MARK: -
+    // MARK: Rendering
     
     public func newFramebufferAvailable(_ framebuffer:Framebuffer, fromSourceIndex:UInt) {
-        // We tend to get an error on the first frame
+        //print("scenekit has frame with timestamp \(framebuffer.timingStyle.timestamp) from sourceIndex \(fromSourceIndex)")
+        if let previousFramebuffer = inputFramebuffers[fromSourceIndex] {
+            previousFramebuffer.unlock()
+        }
+        inputFramebuffers[fromSourceIndex] = framebuffer
+        
+        if (UInt(inputFramebuffers.count) >= maximumInputs) {
+            renderFrame()
+            
+            updateTargetsWithFramebuffer(outputFramebuffer)
+        }
+    }
+    
+    private func renderFrame() {
+        
+        // Get a handle on the framebuffer we want to send to the SceneKit texture
+        guard let framebuffer = inputFramebuffers[0] else {
+            return
+        }
+        
+        guard let textureTargetMaterial = textureTargetMaterial else {
+            print("no scenekit texture :(")
+            return
+        }
+        
+        // Create a texture info with this texture
+        let textureInfo = InjectedTextureInfo(texture: framebuffer.texture, width: GLuint(framebuffer.size.width), height: GLuint(framebuffer.size.height))
+        
+        //print("SceneKitOperation has texture \(framebuffer.texture)")
+        
+        //print("TEXTURE/SOURCE:\t\(framebuffer.texture)/\(sources.sources)")
+        
+        // Attach the texture to the SceneKit scene
+        textureTargetMaterial.diffuse.contents = textureInfo
+        textureTargetMaterial.isDoubleSided = true
+        
+        
+        
+        
+        // Get a framebuffer to draw into
+        renderFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation: .portrait, size: GLSize(width: GLint(outputSize.width), height: GLint(outputSize.height)))
+        
         var error = glGetError()
         guard error == GLenum(GL_NO_ERROR) else {
             print("SOME BAD SHIT HAPPENED HERE")
             return
         }
         
-        guard let textureTargetMaterial = textureTargetMaterial else {
-            print("no texture :(")
-            return
-        }
-        // If we already have a framebuffer from a previous render, unlock it (we obtain two locks at the end of this function)
-        sceneKitFramebuffer?.unlock()
-        sceneKitFramebuffer = nil
         
-        // Request a texture to copy the framebuffer to
-        //let tempImageTexture = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation: .portrait, size: framebuffer.size, textureOnly: true)
-        
-        // Create a texture info with this texture
-        let textureInfo = InjectedTextureInfo(texture: framebuffer.texture, width: GLuint(framebuffer.size.width), height: GLuint(framebuffer.size.height))
-        
-        print("SceneKitOperation has texture \(framebuffer.texture)")
-        
-        // Attach the texture to the SceneKit scene
-        textureTargetMaterial.diffuse.contents = textureInfo
-        textureTargetMaterial.isDoubleSided = true
-        
-        // Get a framebuffer to draw into
-        sceneKitFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation: .portrait, size: GLSize(width: GLint(outputSize.width), height: GLint(outputSize.height)))
-        
-        error = glGetError()
-        guard error == GLenum(GL_NO_ERROR) else {
-            print("SOME BAD SHIT HAPPENED HERE")
-            return
-        }
-        
-        guard let sceneKitFramebuffer = sceneKitFramebuffer,
-            let sceneKitFramebufferID = sceneKitFramebuffer.framebuffer else {
-            print("ERROR: No framebuffer")
-            return
-        }
-        
-        // Do some setup on the framebuffer
-        glBindFramebuffer(GLenum(GL_FRAMEBUFFER), sceneKitFramebufferID)
-        glViewport(0, 0, GLsizei(outputSize.width), GLsizei(outputSize.height))
-        clearFramebufferWithColor(Color.green)
+        renderFramebuffer.activateFramebufferForRendering()
+        clearFramebufferWithColor(backgroundColor)
         
         error = glGetError()
         guard error == GLenum(GL_NO_ERROR) else {
@@ -126,33 +105,42 @@ public class SceneKitOperation: ImageProcessingOperation {
         // Render to the framebuffer
         renderer.render(atTime: 0)
         
-        // Unlock the framebuffer of the movie source
-        framebuffer.unlock()
-        
-        // Lock for us to use internally
-        sceneKitFramebuffer.lock()
-        
-        // Lock for the target to use
-        sceneKitFramebuffer.lock()
-        updateTargetsWithFramebuffer(sceneKitFramebuffer)
-        
-        renderSinceLastDisplayLink = true
+        releaseIncomingFramebuffers()
     }
     
-    // Called when targets are added to a source so they can immediately get some content on screen while waiting for the next render
-    public func transmitPreviousImage(to target:ImageConsumer, atIndex:UInt) {
-        // not needed?
-        sharedImageProcessingContext.runOperationAsynchronously{
-            guard let sceneKitFramebuffer = self.sceneKitFramebuffer else {
-                return
-            }
+    private func releaseIncomingFramebuffers() {
+        var remainingFramebuffers = [UInt:Framebuffer]()
+        // If all inputs are still images, have this output behave as one
+        renderFramebuffer.timingStyle = .stillImage
+        
+        var latestTimestamp:Timestamp?
+        for (key, framebuffer) in inputFramebuffers {
             
-            sceneKitFramebuffer.lock()
-            target.newFramebufferAvailable(sceneKitFramebuffer, fromSourceIndex:atIndex)
+            // When there are multiple transient input sources, use the latest timestamp as the value to pass along
+            if let timestamp = framebuffer.timingStyle.timestamp {
+                if !(timestamp < (latestTimestamp ?? timestamp)) {
+                    latestTimestamp = timestamp
+                    renderFramebuffer.timingStyle = .videoFrame(timestamp:timestamp)
+                }
+                
+                framebuffer.unlock()
+            } else {
+                remainingFramebuffers[key] = framebuffer
+            }
+        }
+        inputFramebuffers = remainingFramebuffers
+    }
+    
+    public func transmitPreviousImage(to target:ImageConsumer, atIndex:UInt) {
+        sharedImageProcessingContext.runOperationAsynchronously{
+            guard let renderFramebuffer = self.renderFramebuffer, (!renderFramebuffer.timingStyle.isTransient()) else { return }
+            
+            renderFramebuffer.lock()
+            target.newFramebufferAvailable(renderFramebuffer, fromSourceIndex:atIndex)
         }
     }
-
 }
+
 
 // GLKTextureInfo is read-only, so we've made our own with a cooler name that allows access
 fileprivate class InjectedTextureInfo: GLKTextureInfo {
