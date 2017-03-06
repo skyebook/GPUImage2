@@ -51,15 +51,7 @@ open class PixelBufferTextureInput: ImageSource {
         
         let startTime = CFAbsoluteTimeGetCurrent()
         
-        
-        
         CVOpenGLESTextureCacheFlush(sharedImageProcessingContext.coreVideoTextureCache, 0)
-        
-        
-        
-        
-        
-        
         
         let luminanceFramebuffer:Framebuffer
         let chrominanceFramebuffer:Framebuffer
@@ -96,27 +88,7 @@ open class PixelBufferTextureInput: ImageSource {
             glTexImage2D(GLenum(GL_TEXTURE_2D), 0, GL_LUMINANCE_ALPHA, GLsizei(bufferWidth / 2), GLsizei(bufferHeight / 2), 0, GLenum(GL_LUMINANCE_ALPHA), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1))
         }
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         let conversionMatrix = colorConversionMatrix601FullRangeDefault
-        
-        
         
         // TODO: Get this color query working
         //        if let colorAttachments = CVBufferGetAttachment(movieFrame, kCVImageBufferYCbCrMatrixKey, nil) {
@@ -141,6 +113,9 @@ open class PixelBufferTextureInput: ImageSource {
         CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
         
         movieFramebuffer.timingStyle = .videoFrame(timestamp:Timestamp(withSampleTime))
+        
+        //print("PIXEL BUFFER INPUT VENDING TEXTURE \(movieFramebuffer.texture)")
+        
         self.updateTargetsWithFramebuffer(movieFramebuffer)
         
         if self.runBenchmark {
