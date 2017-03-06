@@ -158,6 +158,26 @@ public class TargetContainer:Sequence {
         }
 #endif
     }
+    
+    public func remove(target: ImageConsumer) {
+        let weakRefsToRemove = self.targets.filter { (weakRef) -> Bool in
+            return weakRef.value === target
+        }
+        
+        let indicesToRemove = weakRefsToRemove.map { (weakRef) -> Int? in
+            return self.targets.index(where: { (ref) -> Bool in
+                return weakRef === ref
+            })
+            }.flatMap{$0}
+        
+        indicesToRemove.forEach {self.targets.remove(at: $0)}
+        weakRefsToRemove.forEach { (weakRef) in
+            guard let value = weakRef.value else {
+                return
+            }
+            value.sources.removeAtIndex(weakRef.indexAtTarget)
+        }
+    }
 }
 
 public class SourceContainer {
