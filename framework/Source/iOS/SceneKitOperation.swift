@@ -72,16 +72,9 @@ open class SceneKitOperation: ImageProcessingOperation {
         // Create a texture info with this texture
         let textureInfo = InjectedTextureInfo(texture: framebuffer.texture, width: GLuint(framebuffer.size.width), height: GLuint(framebuffer.size.height))
         
-        //print("SceneKitOperation has texture \(framebuffer.texture)")
-        
-        //print("TEXTURE/SOURCE:\t\(framebuffer.texture)/\(sources.sources)")
-        
         // Attach the texture to the SceneKit scene
         textureTargetMaterial.diffuse.contents = textureInfo
         textureTargetMaterial.isDoubleSided = true
-        
-        
-        
         
         // Get a framebuffer to draw into
         renderFramebuffer = sharedImageProcessingContext.framebufferCache.requestFramebufferWithProperties(orientation: .portrait, size: GLSize(width: GLint(outputSize.width), height: GLint(outputSize.height)))
