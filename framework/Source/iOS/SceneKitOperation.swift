@@ -11,7 +11,7 @@ import GLKit
 
 open class SceneKitOperation: ImageProcessingOperation {
     public let maximumInputs:UInt = 1
-    public var backgroundColor = Color.green
+    public var backgroundColor = Color.transparent
     
     // MARK: -
     // MARK: Internal
