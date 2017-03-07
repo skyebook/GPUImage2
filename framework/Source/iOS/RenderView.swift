@@ -40,7 +40,8 @@ public class RenderView:UIView, ImageConsumer {
         self.contentScaleFactor = UIScreen.main.scale
         
         let eaglLayer = self.layer as! CAEAGLLayer
-        eaglLayer.isOpaque = true
+        eaglLayer.backgroundColor = UIColor.clear.cgColor
+        eaglLayer.isOpaque = false
         eaglLayer.drawableProperties = [kEAGLDrawablePropertyRetainedBacking: NSNumber(value:false), kEAGLDrawablePropertyColorFormat: kEAGLColorFormatRGBA8]
     }
     
