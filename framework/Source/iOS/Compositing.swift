@@ -255,6 +255,8 @@ public class Compositing: NSObject, AVVideoCompositing, ImageConsumer {
             glReadPixels(0, 0, renderFramebuffer.size.width, renderFramebuffer.size.height, GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), CVPixelBufferGetBaseAddress(pixelBuffer))
             renderFramebuffer.unlock()
         //}
+        
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue: CVOptionFlags(0)))
     }
     
     // MARK: - ImageConsumer
