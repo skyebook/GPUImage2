@@ -96,7 +96,7 @@ open class SceneKitOperation: ImageProcessingOperation {
         }
         
         // Render to the framebuffer
-        renderer.render(atTime: 0)
+        renderer.render(atTime: Date.timeIntervalSinceReferenceDate)
         
         releaseIncomingFramebuffers()
     }
